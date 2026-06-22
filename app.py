@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, j
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 import os
-from datetime import datetime
+from datetime import datetime,timezone
 from functools import wraps
 
 app = Flask(__name__)
@@ -209,7 +209,8 @@ def edit_task(task_id):
 @app.route('/api/due-soon')
 @login_required
 def due_soon():
-    now = datetime.now()
+    ist=pytz.timezone('Asia/Kolkata')
+    now = datetime.now(ist)
     with get_db() as conn:
         tasks = conn.execute(
             "SELECT id, title, deadline FROM tasks WHERE user_id=? AND done=0 AND deadline IS NOT NULL",
