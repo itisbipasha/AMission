@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Edit Task{% endblock %}
+
+{% block body %}
+<div class="auth-page edit-page">
+  <div class="auth-art">
+    <div class="art-inner">
+      <div class="brand-monogram">✎</div>
+      <p class="art-tagline">Refine your plan.<br>Every detail counts.</p>
+      <div class="art-ornament">
+        <span></span><span class="diamond">◆</span><span></span>
+      </div>
+      <p class="art-quote">"Plans are nothing; planning is everything."<br><em>— Dwight D. Eisenhower</em></p>
+    </div>
+  </div>
+
+  <div class="auth-form-panel">
+    <div class="auth-form-inner">
+      <div class="auth-logo"><a href="{{ url_for('dashboard') }}" style="color:inherit;text-decoration:none">← Luminara</a></div>
+      <h1 class="auth-heading">Edit Task</h1>
+      <p class="auth-sub">Adjust anything that needs refining</p>
+
+      <form method="POST" class="auth-form">
+        <div class="field-group">
+          <label>Title</label>
+          <input name="title" type="text" value="{{ task['title'] }}" required>
+        </div>
+        <div class="field-group">
+          <label>Description</label>
+          <textarea name="description" rows="3">{{ task['description'] or '' }}</textarea>
+        </div>
+        <div class="field-row" style="gap:1rem">
+          <div class="field-group" style="flex:1">
+            <label>Deadline</label>
+            <input name="deadline" type="datetime-local" value="{{ task['deadline'] or '' }}">
+          </div>
+          <div class="field-group" style="flex:1">
+            <label>Priority</label>
+            <select name="priority">
+              <option value="low"    {% if task['priority']=='low'    %}selected{% endif %}>Low</option>
+              <option value="medium" {% if task['priority']=='medium' %}selected{% endif %}>Medium</option>
+              <option value="high"   {% if task['priority']=='high'   %}selected{% endif %}>High</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn-primary" type="submit">Save Changes ✦</button>
+        <a href="{{ url_for('dashboard') }}" class="btn-secondary" style="display:block;text-align:center;margin-top:.75rem">Cancel</a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  sessionStorage.setItem('pendingToast', 'Task updated! You\'re refining your plan beautifully ✨');
+</script>
+{% endblock %}

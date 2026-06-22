@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}Create Account{% endblock %}
+
+{% block body %}
+<div class="auth-page">
+  <div class="auth-art">
+    <div class="art-inner">
+      <div class="brand-monogram">L</div>
+      <p class="art-tagline">Begin your journey towards<br>a more organised, joyful life.</p>
+      <div class="art-ornament">
+        <span></span><span class="diamond">◆</span><span></span>
+      </div>
+      <p class="art-quote">"A goal without a plan is just a wish."<br><em>— Antoine de Saint-Exupéry</em></p>
+    </div>
+  </div>
+
+  <div class="auth-form-panel">
+    <div class="auth-form-inner">
+      <div class="auth-logo">Luminara</div>
+      <h1 class="auth-heading">Create your account</h1>
+      <p class="auth-sub">Join thousands organising their best days</p>
+
+      {% if error %}
+      <div class="alert alert-error">⚠ {{ error }}</div>
+      {% endif %}
+
+      <form method="POST" class="auth-form" autocomplete="off">
+        <div class="field-group">
+          <label for="username">Username</label>
+          <input id="username" name="username" type="text" placeholder="choose_a_name" minlength="3" required autofocus>
+          <span class="field-hint">At least 3 characters</span>
+        </div>
+        <div class="field-group">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" placeholder="••••••••" minlength="6" required>
+          <span class="field-hint">At least 6 characters</span>
+        </div>
+        <button class="btn-primary" type="submit">Create Account</button>
+      </form>
+
+      <p class="auth-switch">Already have an account? <a href="{{ url_for('login') }}">Sign in →</a></p>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Sign In{% endblock %}
+
+{% block body %}
+<div class="auth-page">
+  <div class="auth-art">
+    <div class="art-inner">
+      <div class="brand-monogram">L</div>
+      <p class="art-tagline">Your tasks, elegantly organised.<br>Your day, beautifully owned.</p>
+      <div class="art-ornament">
+        <span></span><span class="diamond">◆</span><span></span>
+      </div>
+      <p class="art-quote">"The secret of getting ahead is getting started."<br><em>— Mark Twain</em></p>
+    </div>
+  </div>
+
+  <div class="auth-form-panel">
+    <div class="auth-form-inner">
+      <div class="auth-logo">AMission</div>
+      <h1 class="auth-heading">Welcome back</h1>
+      <p class="auth-sub">Sign in to continue your journey</p>
+
+      {% if new %}
+      <div class="alert alert-success">
+        ✦ Account created! Sign in below and let's get going.
+      </div>
+      {% endif %}
+
+      {% if error %}
+      <div class="alert alert-error">⚠ {{ error }}</div>
+      {% endif %}
+
+      <form method="POST" class="auth-form" autocomplete="off">
+        <div class="field-group">
+          <label for="username">Username</label>
+          <input id="username" name="username" type="text" placeholder="your_username" required autofocus>
+        </div>
+        <div class="field-group">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" placeholder="••••••••" required>
+        </div>
+        <button class="btn-primary" type="submit">Sign In</button>
+      </form>
+
+      <p class="auth-switch">Don't have an account? <a href="{{ url_for('signup') }}">Create one →</a></p>
+    </div>
+  </div>
+</div>
+{% endblock %}

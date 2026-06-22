@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+
+{% block body %}
+<!-- Toast Notification -->
+<div id="toast" class="toast" aria-live="polite"></div>
+
+<!-- Browser notification permission banner -->
+<div id="notif-banner" class="notif-banner" style="display:none">
+  <span>🔔 Allow notifications to get reminders 1 hour before deadlines.</span>
+  <button onclick="requestNotifPermission()" class="btn-notif-allow">Allow</button>
+  <button onclick="document.getElementById('notif-banner').style.display='none'" class="btn-notif-dismiss">×</button>
+</div>
+
+<div class="app-layout">
+  <!-- ── Sidebar ───────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">AMission</div>
+    <div class="sidebar-user">
+      <div class="user-avatar">{{ username[0]|upper }}</div>
+      <div class="user-info">
+        <span class="user-name">{{ username }}</span>
+        <span class="user-role">Task Master</span>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="{{ url_for('dashboard', filter='all') }}"   class="nav-item {% if filter_by=='all' %}active{% endif %}">
+        <span class="nav-icon">◈</span> All Tasks
+      </a>
+      <a href="{{ url_for('dashboard', filter='pending') }}" class="nav-item {% if filter_by=='pending' %}active{% endif %}">
+        <span class="nav-icon">○</span> Pending
+      </a>
+      <a href="{{ url_for('dashboard', filter='done') }}"    class="nav-item {% if filter_by=='done' %}active{% endif %}">
+        <span class="nav-icon">◉</span> Completed
+      </a>
+    </nav>
+
+    <div class="sidebar-stats">
+      <div class="stat-card">
+        <span class="stat-num">{{ counts['total'] or 0 }}</span>
+        <span class="stat-lbl">Total</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num">{{ (counts['total'] or 0) - (counts['done'] or 0) }}</span>
+        <span class="stat-lbl">Pending</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num">{{ counts['done'] or 0 }}</span>
+        <span class="stat-lbl">Done</span>
+      </div>
+    </div>
+
+    <a href="{{ url_for('logout') }}" class="sidebar-logout">↩ Sign Out</a>
+  </aside>
+
+  <!-- ── Main ─────────────────────────────────────────── -->
+  <main class="main-content">
+    <header class="main-header">
+      <div>
+        <h1 class="page-title">My Tasks</h1>
+        <p class="page-sub" id="daily-quote">Loading your inspiration…</p>
+      </div>
+      <button class="btn-add-task" onclick="openModal()">+ Add Task</button>
+    </header>
+
+    <!-- Task List -->
+    <div class="task-list">
+      {% if tasks %}
+        {% for task in tasks %}
+        <div class="task-card {% if task['done'] %}task-done{% endif %} priority-{{ task['priority'] }}" data-id="{{ task['id'] }}">
+          <div class="task-left">
+            <button class="task-check {% if task['done'] %}checked{% endif %}"
+              onclick="window.location='{% if task['done'] %}{{ url_for('undo_done', task_id=task['id']) }}{% else %}{{ url_for('mark_done', task_id=task['id']) }}{% endif %}'">
+              {% if task['done'] %}✓{% else %}&nbsp;{% endif %}
+            </button>
+            <div class="task-body">
+              <div class="task-title">{{ task['title'] }}</div>
+              {% if task['description'] %}
+              <div class="task-desc">{{ task['description'] }}</div>
+              {% endif %}
+              <div class="task-meta">
+                <span class="priority-badge priority-{{ task['priority'] }}">{{ task['priority']|capitalize }}</span>
+                {% if task['deadline'] %}
+                <span class="deadline-badge" data-deadline="{{ task['deadline'] }}">
+                  🕐 <span class="deadline-text">{{ task['deadline']|replace('T',' ') }}</span>
+                </span>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          <div class="task-actions">
+            {% if not task['done'] %}
+            <a href="{{ url_for('edit_task', task_id=task['id']) }}" class="action-btn edit-btn" title="Edit">✎</a>
+            {% endif %}
+            <button class="action-btn delete-btn" onclick="confirmDelete({{ task['id'] }})" title="Delete">✕</button>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">✦</div>
+          <h3>No tasks here yet</h3>
+          <p>Add your first task and start owning your day.</p>
+          <button class="btn-primary" onclick="openModal()">+ Add a Task</button>
+        </div>
+      {% endif %}
+    </div>
+  </main>
+</div>
+
+<!-- ── Add Task Modal ───────────────────────────── -->
+<div id="modal-overlay" class="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">New Task</h2>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <form method="POST" action="{{ url_for('add_task') }}" class="modal-form" id="add-form">
+      <div class="field-group">
+        <label for="m-title">Task Title <span class="req">*</span></label>
+        <input id="m-title" name="title" type="text" placeholder="What needs to be done?" required>
+      </div>
+      <div class="field-group">
+        <label for="m-desc">Description</label>
+        <textarea id="m-desc" name="description" placeholder="Any details…" rows="3"></textarea>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label for="m-deadline">Deadline</label>
+          <input id="m-deadline" name="deadline" type="datetime-local">
+        </div>
+        <div class="field-group">
+          <label for="m-priority">Priority</label>
+          <select id="m-priority" name="priority">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn-primary">Add Task ✦</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── Delete Confirm Modal ─────────────────────── -->
+<div id="delete-overlay" class="modal-overlay" onclick="closeDeleteModal(event)">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2 class="modal-title">Remove Task</h2>
+    </div>
+    <p class="delete-msg">Are you sure you want to remove this task? Good riddance to anything that no longer serves you!</p>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeDeleteModal()">Keep it</button>
+      <a id="confirm-delete-link" href="#" class="btn-danger">Yes, remove it</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // ── Modal open/close ───────────────────────────────────
+  function openModal() {
+    document.getElementById('modal-overlay').classList.add('open');
+    document.getElementById('m-title').focus();
+  }
+  function closeModal(e) {
+    if (!e || e.target.id === 'modal-overlay' || e.currentTarget.classList.contains('modal-close')) {
+      document.getElementById('modal-overlay').classList.remove('open');
+    }
+  }
+
+  // ── Delete confirmation ────────────────────────────────
+  function confirmDelete(id) {
+    document.getElementById('confirm-delete-link').href = '/task/delete/' + id;
+    document.getElementById('delete-overlay').classList.add('open');
+  }
+  function closeDeleteModal(e) {
+    if (!e || e.target.id === 'delete-overlay') {
+      document.getElementById('delete-overlay').classList.remove('open');
+    }
+  }
+
+  // ── Motivational quotes ─────────────────────────────────
+  const quotes = [
+    "Every checked box is a small victory. Celebrate it! 🎉",
+    "You're doing great. One task at a time. ✨",
+    "Progress, not perfection. Keep going! 🌟",
+    "Today's effort is tomorrow's success. 💪",
+    "You've got this! The list is shorter than it looks. 😊",
+    "Small steps every day lead to big journeys. 🗺️",
+    "Believe in yourself — you're more capable than you think! 🌈",
+    "Tick off one task and feel unstoppable! ⚡",
+    "Your future self will thank you for today's work. 🙌",
+    "Focus. You're closer to done than you think! 🔥"
+  ];
+  document.getElementById('daily-quote').textContent = quotes[Math.floor(Math.random() * quotes.length)];
+
+  // ── Add-task encouragement ─────────────────────────────
+  const addMessages = [
+    "Wonderful! A new mission begins. 🚀",
+    "Brilliant! You're on top of things. ✦",
+    "Task added! You're unstoppable. 💫",
+    "Noted! Now go crush it! 💪",
+    "Your future self says thank you! 🌟"
+  ];
+  document.getElementById('add-form').addEventListener('submit', function() {
+    sessionStorage.setItem('pendingToast', addMessages[Math.floor(Math.random() * addMessages.length)]);
+  });
+
+  // ── Deadline colour coding ─────────────────────────────
+  document.querySelectorAll('[data-deadline]').forEach(el => {
+    const dl = new Date(el.dataset.deadline);
+    const diff = (dl - Date.now()) / 60000; // minutes
+    if (diff < 0)       el.classList.add('overdue');
+    else if (diff < 60) el.classList.add('due-soon');
+    else if (diff < 1440) el.classList.add('due-today');
+  });
+</script>
+{% endblock %}
