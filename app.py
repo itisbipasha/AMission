@@ -209,8 +209,7 @@ def edit_task(task_id):
 @app.route('/api/due-soon')
 @login_required
 def due_soon():
-    ist=pytz.timezone('Asia/Kolkata')
-    now = datetime.now(ist)
+    now = datetime.now()
     with get_db() as conn:
         tasks = conn.execute(
             "SELECT id, title, deadline FROM tasks WHERE user_id=? AND done=0 AND deadline IS NOT NULL",

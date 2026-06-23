@@ -148,7 +148,7 @@
 </div>
 
 <!-- ── Delete Confirm Modal ─────────────────────── -->
-<div id="delete-overlay" class="modal-overlay" onclick="closeDeleteModal(event)">
+<div id="delete-overlay" class="modal-overlay">
   <div class="modal modal-sm">
     <div class="modal-header">
       <h2 class="modal-title">Remove Task</h2>
@@ -160,11 +160,8 @@
     </div>
   </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
 <script>
-  // ── Modal open/close ───────────────────────────────────
+  // ── Modal ──────────────────────────────────────
   function openModal() {
     document.getElementById('modal-overlay').classList.add('open');
     document.getElementById('m-title').focus();
@@ -175,18 +172,16 @@
     }
   }
 
-  // ── Delete confirmation ────────────────────────────────
+  // ── Delete ─────────────────────────────────────
   function confirmDelete(id) {
     document.getElementById('confirm-delete-link').href = '/task/delete/' + id;
     document.getElementById('delete-overlay').classList.add('open');
   }
-  function closeDeleteModal(e) {
-    if (!e || e.target.id === 'delete-overlay') {
-      document.getElementById('delete-overlay').classList.remove('open');
-    }
+  function closeDeleteModal() {
+    document.getElementById('delete-overlay').classList.remove('open');
   }
 
-  // ── Motivational quotes ─────────────────────────────────
+  // ── Quotes ─────────────────────────────────────
   const quotes = [
     "Every checked box is a small victory. Celebrate it! 🎉",
     "You're doing great. One task at a time. ✨",
@@ -201,7 +196,7 @@
   ];
   document.getElementById('daily-quote').textContent = quotes[Math.floor(Math.random() * quotes.length)];
 
-  // ── Add-task encouragement ─────────────────────────────
+  // ── Add task toast ──────────────────────────────
   const addMessages = [
     "Wonderful! A new mission begins. 🚀",
     "Brilliant! You're on top of things. ✦",
@@ -213,13 +208,41 @@
     sessionStorage.setItem('pendingToast', addMessages[Math.floor(Math.random() * addMessages.length)]);
   });
 
-  // ── Deadline colour coding ─────────────────────────────
+  // ── Done toast ──────────────────────────────────
+  document.querySelectorAll('.task-check').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!btn.classList.contains('checked')) {
+        const msgs = [
+          'Woohoo! Task crushed! 🎉',
+          "One down, you're on fire! 🔥",
+          'Nailed it! You should be proud 🌟',
+          "Done! You're absolutely killing it! ✨",
+          'Amazing work! Keep that momentum going 💪'
+        ];
+        sessionStorage.setItem('pendingToast', msgs[Math.floor(Math.random() * msgs.length)]);
+      }
+    });
+  });
+
+  // ── Delete toast ────────────────────────────────
+  document.getElementById('confirm-delete-link').addEventListener('click', function() {
+    const msgs = [
+      'Task removed. On to better things! ✨',
+      'Gone! Your list is a little lighter now 🎉',
+      'Cleared! Sometimes letting go feels great 🙌',
+      'Task deleted. Space for new adventures! 🚀'
+    ];
+    sessionStorage.setItem('pendingToast', msgs[Math.floor(Math.random() * msgs.length)]);
+  });
+
+  // ── Deadline colours ────────────────────────────
   document.querySelectorAll('[data-deadline]').forEach(el => {
     const dl = new Date(el.dataset.deadline);
-    const diff = (dl - Date.now()) / 60000; // minutes
-    if (diff < 0)       el.classList.add('overdue');
-    else if (diff < 60) el.classList.add('due-soon');
+    const diff = (dl - Date.now()) / 60000;
+    if (diff < 0)         el.classList.add('overdue');
+    else if (diff < 60)   el.classList.add('due-soon');
     else if (diff < 1440) el.classList.add('due-today');
   });
 </script>
 {% endblock %}
+
