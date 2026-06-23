@@ -1,11 +1,4 @@
-/* ═══════════════════════════════════════════════════
-   LUMINARA · main.js
-   - Toast messages
-   - Browser push notifications for 1-hour reminders
-   - Page-load encouragement
-═══════════════════════════════════════════════════ */
-
-// ─── Toast ────────────────────────────────────────────────────────────────────
+// ─── Toast ──────────────────────────────────────────
 function showToast(msg, duration = 3500) {
   const toast = document.getElementById('toast');
   if (!toast) return;
@@ -14,7 +7,6 @@ function showToast(msg, duration = 3500) {
   setTimeout(() => toast.classList.remove('show'), duration);
 }
 
-// Show toast from previous page action (stored in sessionStorage)
 window.addEventListener('DOMContentLoaded', () => {
   const pending = sessionStorage.getItem('pendingToast');
   if (pending) {
@@ -23,7 +15,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// ─── Delete toast ─────────────────────────────────────────────────────────────
+// ─── Delete toast ────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   const deleteLink = document.getElementById('confirm-delete-link');
   if (deleteLink) {
@@ -38,7 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Mark done toast
   document.querySelectorAll('.task-check').forEach(btn => {
     btn.addEventListener('click', () => {
       if (!btn.classList.contains('checked')) {
@@ -55,16 +46,39 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
-// ─── Browser Notifications ────────────────────────────────────────────────────
-let notifShown = new Set(); // track which task IDs we've already notified
+// ─── Motivational quotes ─────────────────────────────
+const quotes = [
+  "Every checked box is a small victory. Celebrate it! 🎉",
+  "You're doing great. One task at a time. ✨",
+  "Progress, not perfection. Keep going! 🌟",
+  "Today's effort is tomorrow's success. 💪",
+  "You've got this! The list is shorter than it looks. 😊",
+  "Small steps every day lead to big journeys. 🗺️",
+  "Believe in yourself — you're more capable than you think! 🌈",
+  "Tick off one task and feel unstoppable! ⚡",
+  "Your future self will thank you for today's work. 🙌",
+  "Focus. You're closer to done than you think! 🔥"
+];
+window.addEventListener('DOMContentLoaded', () => {
+  const el = document.getElementById('daily-quote');
+  if (el) el.textContent = quotes[Math.floor(Math.random() * quotes.length)];
+});
+
+// ─── Notifications ────────────────────────────────────
+let notifShown = JSON.parse(localStorage.getItem('notifShown') || '[]');
 
 function requestNotifPermission() {
-  if (!('Notification' in window)) return;
+  if (!('Notification' in window)) {
+    alert('Your browser does not support notifications. Please use Chrome.');
+    return;
+  }
   Notification.requestPermission().then(perm => {
     document.getElementById('notif-banner').style.display = 'none';
     if (perm === 'granted') {
-      showToast('🔔 Notifications enabled! We\'ll remind you before deadlines.');
-      startReminderPolling();
+      showToast('🔔 Notifications enabled! You will be reminded 1 hour before deadlines.');
+      checkDueSoon();
+    } else {
+      showToast('⚠️ Notifications blocked. Enable them in browser settings.');
     }
   });
 }
@@ -77,12 +91,14 @@ function showReminderNotification(title, minutesLeft) {
     `✨ Don't forget "${title}"! ${minutesLeft} minutes left. You can do it!`,
   ];
   const msg = messages[Math.floor(Math.random() * messages.length)];
-  new Notification('Luminara Reminder', {
-    body: msg,
-    icon: '/static/favicon.ico',
-    tag: 'luminara-reminder',
-    requireInteraction: false,
-  });
+  try {
+    new Notification('Luminara Reminder 🌟', {
+      body: msg,
+      requireInteraction: false,
+    });
+  } catch(e) {
+    showToast(msg, 6000);
+  }
 }
 
 async function checkDueSoon() {
@@ -91,48 +107,63 @@ async function checkDueSoon() {
     if (!res.ok) return;
     const tasks = await res.json();
     tasks.forEach(task => {
-      if (!notifShown.has(task.id)) {
-        notifShown.add(task.id);
-        showReminderNotification(task.title, task.minutes_left);
+      const key = `notif_${task.id}`;
+      if (!notifShown.includes(key)) {
+        notifShown.push(key);
+        localStorage.setItem('notifShown', JSON.stringify(notifShown));
+        if (Notification.permission === 'granted') {
+          showReminderNotification(task.title, task.minutes_left);
+        } else {
+          showToast(`⏰ "${task.title}" is due in ${task.minutes_left} minutes!`, 8000);
+        }
       }
     });
-  } catch (e) { /* silent */ }
+    // Clean old keys every hour
+    if (notifShown.length > 100) {
+      notifShown = [];
+      localStorage.setItem('notifShown', '[]');
+    }
+  } catch (e) {
+    console.log('Reminder check failed:', e);
+  }
 }
 
 function startReminderPolling() {
-  checkDueSoon(); // immediate check
-  setInterval(checkDueSoon, 5 * 60 * 1000); // every 5 minutes
+  checkDueSoon();
+  setInterval(checkDueSoon, 2 * 60 * 1000); // every 2 minutes
 }
 
-// ─── Init notifications ───────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   if (!('Notification' in window)) return;
   if (Notification.permission === 'granted') {
     startReminderPolling();
   } else if (Notification.permission !== 'denied') {
-    // Show a friendly banner if not yet asked
     const banner = document.getElementById('notif-banner');
-    if (banner) {
-      setTimeout(() => { banner.style.display = 'flex'; }, 1500);
-    }
+    if (banner) setTimeout(() => { banner.style.display = 'flex'; }, 500);
   }
 });
 
-// ─── Mobile sidebar toggle ────────────────────────────────────────────────────
+// ─── Deadline colour coding ───────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('[data-deadline]').forEach(el => {
+    const dl = new Date(el.dataset.deadline);
+    const diff = (dl - Date.now()) / 60000;
+    if (diff < 0)        el.classList.add('overdue');
+    else if (diff < 60)  el.classList.add('due-soon');
+    else if (diff < 1440) el.classList.add('due-today');
+  });
+});
+
+// ─── Mobile sidebar ───────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   const sidebar = document.querySelector('.sidebar');
   if (!sidebar) return;
-
-  // Inject mobile menu button if we're in app layout
   if (window.innerWidth <= 768) {
     const btn = document.createElement('button');
     btn.className = 'mobile-menu-btn';
     btn.innerHTML = '☰';
-    btn.title = 'Open menu';
     btn.addEventListener('click', () => sidebar.classList.toggle('open'));
     document.body.prepend(btn);
-
-    // Close sidebar on outside tap
     document.addEventListener('click', e => {
       if (sidebar.classList.contains('open') &&
           !sidebar.contains(e.target) &&
